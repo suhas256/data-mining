@@ -1,0 +1,59 @@
+Q1 EVIDENCE
+
+1. MinIO
+Bucket: annapurna
+Raw sales location:
+raw/sales/sales/
+
+2. DuckDB - MinIO connectivity
+
+Successful query:
+SELECT *
+FROM read_csv(
+    's3://annapurna/raw/sales/sales/SALES_S01_20240101.csv',
+    header=true,
+    all_varchar=true,
+    filename=true
+)
+LIMIT 5;
+
+3. Raw sales row count
+
+Successful count for S01 files:
+123222
+
+4. PostgreSQL
+
+PostgreSQL container:
+postgres-lab
+
+Database:
+annapurna
+
+5. Idempotency
+
+Row count and checksum were compared after repeated execution of the loader.
+
+6. Revenue definition
+
+SALE, RETURN, DISCOUNT and VOID affect revenue.
+TAX and TENDER are excluded.
+
+7. Architecture
+
+MinIO -> DuckDB
+PostgreSQL -> DuckDB
+
+DuckDB performs the analytical/federated query.
+
+8. Partitioning
+
+sales/store=<store_id>/year=<year>/month=<month>/
+
+9. Star schema
+
+fact_sales
+dim_store
+dim_product
+dim_category
+dim_date

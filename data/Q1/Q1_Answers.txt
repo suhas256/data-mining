@@ -1,0 +1,81 @@
+ANNAPURNA STORES - DATA MINING LAB 1
+Q1 SUBMISSION
+
+(a) PLATFORM AND LANDING
+
+The platform uses MinIO as the object store, PostgreSQL as the relational database, and DuckDB as the analytical query engine.
+
+Sales files are organized using store, year and month partitions:
+
+sales/store=<store_id>/year=<year>/month=<month>/
+
+This allows partition pruning so that a query for one store and one month does not need to inspect unrelated stores and months.
+
+
+(b) IDEMPOTENCY
+
+The loader is designed to handle re-sent files without creating duplicate business lines.
+
+The safe deduplication unit is:
+
+(bill_no, line_no)
+
+Repeated identical records are removed before analytical processing.
+
+The loader was executed repeatedly and row count and checksum were compared to verify that the result remains stable.
+
+
+(c) DASHBOARD AND STAR SCHEMA
+
+The fact table is maintained at sales-line grain.
+
+The star schema contains:
+
+fact_sales
+dim_store
+dim_product
+dim_category
+dim_date
+
+Store name and address are maintained in the store dimension instead of being repeated for every sales line.
+
+Revenue includes SALE, RETURN, DISCOUNT and VOID transactions.
+
+TAX and TENDER are not revenue.
+
+VOID records are retained because they cancel the corresponding original transaction.
+
+
+(d) HISTORICAL PRICING
+
+Product codes are not unique across all dates because product codes were reissued.
+
+Therefore product matching uses the product code together with its validity period and product surrogate key.
+
+Historical prices are obtained from price revision records according to the reporting date.
+
+The same query structure can be used for different reporting periods by changing the reporting date.
+
+
+(e) CROSS-SYSTEM QUERY
+
+Sales data is stored in MinIO and master data is stored in PostgreSQL.
+
+DuckDB can query the object-store sales data and PostgreSQL master data in the same analytical query without copying the source systems into each other.
+
+EXPLAIN output provides evidence of the scan operations performed by DuckDB.
+
+
+(f) RECONCILIATION
+
+Analytical monthly revenue is compared with the finance monthly figures.
+
+Differences are classified as:
+
+1. Source-data problem
+2. Revenue-definition difference
+3. Pipeline bug
+
+TAX and TENDER are excluded from revenue, while SALE, RETURN, DISCOUNT and VOID affect revenue according to their transaction meaning.
+
+The reconciliation results are maintained as supporting evidence.
